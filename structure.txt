@@ -67,21 +67,26 @@ backend/
 
 frontend/
 │── public/
-│   ├── index.html             # Main HTML file
-│   ├── favicon.ico            # Website icon
+│   ├── index.html             # Main HTML file (Vite entry)
 │── src/
-│   ├── components/            # UI components
-│   │   ├── Navbar.js          # Navigation bar
-│   │   ├── AlertBox.js        # Notification alert component
+│   ├── components/            # Reusable UI components
+│   │   ├── Navbar.jsx         # Navigation bar
+│   │   ├── AlertBox.jsx       # Notification alert component
 │   ├── pages/                 # Page views
-│   │   ├── Home.js            # Homepage
-│   │   ├── Dashboard.js       # User dashboard
-│   ├── services/
-│   │   ├── api.js             # API requests handler
-│── App.js                     # Main React component
-│── index.js                   # Entry point
-│── package.json               # Frontend dependencies
-│── package-lock.json          # Exact versions
+│   │   ├── Home.jsx           # Homepage
+│   │   ├── Dashboard.jsx      # User dashboard
+│   ├── services/              # API request handlers
+│   │   ├── api.js             # Fetch API calls
+│   ├── App.jsx                # Main React component
+│   ├── main.jsx               # React entry point
+│   ├── index.css              # Tailwind styles
+│── package.json               # Project dependencies
+│── vite.config.js             # Vite configuration
+│── tailwind.config.js         # Tailwind configuration
+│── postcss.config.js          # PostCSS configuration
+│── node_modules/              # Installed dependencies (after `npm install`)
+│── .gitignore                 # Ignore unnecessary files
+
 
 
 
