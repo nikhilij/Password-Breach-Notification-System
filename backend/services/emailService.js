@@ -261,18 +261,21 @@ class EmailService {
    */
   getSeverityColor(severity) {
     switch (severity) {
-    case "critical":
-      return "#dc3545";
-    case "high":
-      return "#fd7e14";
-    case "medium":
-      return "#ffc107";
-    case "low":
-      return "#28a745";
-    default:
-      return "#6c757d";
+      case "critical":
+        return "#dc3545";
+      case "high":
+        return "#fd7e14";
+      case "medium":
+        return "#ffc107";
+      case "low":
+        return "#28a745";
+      default:
+        return "#6c757d";
     }
   }
 }
 
-module.exports = new EmailService();
+// Export both the class and instance for testing and usage
+module.exports = EmailService;
+// Also export an instance for backward compatibility
+module.exports.instance = new EmailService();

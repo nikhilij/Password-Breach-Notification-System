@@ -1,41 +1,76 @@
 const axios = require("axios");
 const logger = require("../utils/logger");
+const { URLSearchParams } = require("url"); // For Node.js URL functionality
 
 class SMSService {
-  constructor() {
-    this.apiKey = process.env.SMS_API_KEY;
-    this.apiUrl = process.env.SMS_API_URL || "https://api.textlocal.in/send/";
-    this.sender = process.env.SMS_SENDER || "PBNS";
+  constructor() {}
+
+  get accountSid() {
+    return process.env.TWILIO_ACCOUNT_SID;
+  }
+  get authToken() {
+    return process.env.TWILIO_AUTH_TOKEN;
+  }
+  get phoneNumber() {
+    return process.env.TWILIO_PHONE_NUMBER;
+  }
+
+  get useMockService() {
+    return (
+      process.env.NODE_ENV === "development" ||
+      process.env.USE_MOCK_SMS === "true"
+    );
   }
 
   /**
-   * Send SMS notification
+   * Send SMS notification - uses mock service in development
    * @param {string} phone - Recipient phone number
    * @param {string} message - SMS message
    * @returns {Promise<boolean>} - Success status
    */
   async sendSMS(phone, message) {
     try {
-      if (!this.apiKey) {
-        logger.warn("SMS API key not configured, skipping SMS notification");
-        return false;
+      // Use mock service for development
+      if (this.useMockService) {
+        return this.sendMockSMS(phone, message);
       }
 
-      const data = {
-        apikey: this.apiKey,
-        numbers: phone,
-        message: message,
-        sender: this.sender,
-      };
+      if (!this.accountSid || !this.authToken || !this.phoneNumber) {
+        logger.warn("Twilio credentials not configured, using mock service");
+        return this.sendMockSMS(phone, message);
+      }
 
-      const response = await axios.post(this.apiUrl, data, {
+      // Ensure phone number has proper format (with country code)
+      const formattedPhone = this.formatPhoneNumber(phone);
+
+      const url = `https://api.twilio.com/2010-04-01/Accounts/${this.accountSid}/Messages.json`;
+
+      // Create URLSearchParams for the form data
+      const formData = new URLSearchParams();
+      formData.append("To", formattedPhone);
+      formData.append("From", this.phoneNumber);
+      formData.append("Body", message);
+
+      const auth = Buffer.from(`${this.accountSid}:${this.authToken}`).toString(
+        "base64",
+      );
+
+      // In development, log but don't actually send
+      if (process.env.NODE_ENV === "development") {
+        return this.sendMockSMS(phone, message);
+      }
+
+      const response = await axios.post(url, formData.toString(), {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `Basic ${auth}`,
         },
       });
 
-      if (response.data.status === "success") {
-        logger.info(`SMS sent successfully to ${phone}`);
+      if (response.data.sid) {
+        logger.info(
+          `SMS sent successfully to ${phone} with SID: ${response.data.sid}`,
+        );
         return true;
       } else {
         logger.error("SMS sending failed:", response.data);
@@ -45,6 +80,27 @@ class SMSService {
       logger.error("Error sending SMS:", error);
       throw new Error("Failed to send SMS notification");
     }
+  }
+
+  /**
+   * Send mock SMS (for development/testing)
+   * @param {string} phone - Recipient phone number
+   * @param {string} message - SMS message
+   * @returns {Promise<boolean>} - Success status
+   */
+  async sendMockSMS(phone, message) {
+    // Generate a fake message SID like Twilio does (starts with SM)
+    const fakeSid = `SM${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
+
+    // Log the message details instead of actually sending it
+    logger.info("📱 MOCK SMS SENT =====================");
+    logger.info(`📱 To: ${this.formatPhoneNumber(phone)}`);
+    logger.info(`📱 From: ${this.phoneNumber || "+15555555555"}`);
+    logger.info(`📱 Message: ${message}`);
+    logger.info(`📱 SID: ${fakeSid}`);
+    logger.info("📱 ================================== ");
+
+    return true;
   }
 
   /**
@@ -121,4 +177,6 @@ class SMSService {
   }
 }
 
-module.exports = new SMSService();
+// Export the class constructor directly
+// This makes it compatible with: const SMSService = require('...')
+module.exports = SMSService;

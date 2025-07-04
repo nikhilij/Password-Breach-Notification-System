@@ -16,7 +16,7 @@ module.exports = [
         module: "writable",
         require: "readonly",
         global: "readonly",
-        // Jest globals
+        // Test globals (Jest and Mocha)
         describe: "readonly",
         it: "readonly",
         test: "readonly",
@@ -26,6 +26,12 @@ module.exports = [
         beforeEach: "readonly",
         afterEach: "readonly",
         jest: "readonly",
+        // Mocha globals
+        suite: "readonly",
+        suiteSetup: "readonly",
+        suiteTeardown: "readonly",
+        setup: "readonly",
+        teardown: "readonly",
       },
     },
     rules: {
@@ -53,6 +59,10 @@ module.exports = [
     files: ["**/*.test.js"],
     rules: {
       "no-console": "off",
+      "prefer-arrow-callback": "off",
+      "func-names": "off",
+      "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+      "consistent-return": "off",
     },
   },
 ];

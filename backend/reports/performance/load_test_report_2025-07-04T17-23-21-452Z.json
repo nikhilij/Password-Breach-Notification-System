@@ -1,0 +1,29 @@
+{
+  "summary": {
+    "duration": 45,
+    "totalRequests": 20,
+    "successfulRequests": 0,
+    "failedRequests": 20,
+    "successRate": "0.00",
+    "avgResponseTime": "22.95",
+    "minResponseTime": 21,
+    "maxResponseTime": 33,
+    "requestsPerSecond": "444.44",
+    "concurrentUsers": 20,
+    "requestsPerUser": 10
+  },
+  "endpoints": {
+    "/auth/register": {
+      "totalRequests": 20,
+      "successfulRequests": 0,
+      "failedRequests": 20,
+      "successRate": "0.00",
+      "avgResponseTime": "22.95",
+      "minResponseTime": 21,
+      "maxResponseTime": 33,
+      "statusCodes": {
+        "network": 20
+      }
+    }
+  }
+}

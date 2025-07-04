@@ -1,0 +1,41 @@
+{
+  "summary": {
+    "duration": 8201,
+    "totalRequests": 40,
+    "successfulRequests": 40,
+    "failedRequests": 0,
+    "successRate": "100.00",
+    "avgResponseTime": "2863.93",
+    "minResponseTime": 70,
+    "maxResponseTime": 8091,
+    "requestsPerSecond": "4.88",
+    "concurrentUsers": 20,
+    "requestsPerUser": 10
+  },
+  "endpoints": {
+    "/auth/register": {
+      "totalRequests": 20,
+      "successfulRequests": 20,
+      "failedRequests": 0,
+      "successRate": "100.00",
+      "avgResponseTime": "5545.60",
+      "minResponseTime": 4232,
+      "maxResponseTime": 8091,
+      "statusCodes": {
+        "201": 20
+      }
+    },
+    "/auth/login": {
+      "totalRequests": 20,
+      "successfulRequests": 20,
+      "failedRequests": 0,
+      "successRate": "100.00",
+      "avgResponseTime": "182.25",
+      "minResponseTime": 70,
+      "maxResponseTime": 446,
+      "statusCodes": {
+        "200": 20
+      }
+    }
+  }
+}

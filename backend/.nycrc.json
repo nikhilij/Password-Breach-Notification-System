@@ -1,0 +1,18 @@
+{
+    "all": true,
+    "include": [
+        "**/*.js"
+    ],
+    "exclude": [
+        "coverage/**",
+        "test/**",
+        "node_modules/**",
+        ".mocharc.js"
+    ],
+    "reporter": [
+        "html",
+        "text",
+        "lcov"
+    ],
+    "report-dir": "./coverage"
+}

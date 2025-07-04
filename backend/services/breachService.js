@@ -4,12 +4,12 @@ const logger = require("../utils/logger");
 
 class BreachService {
   constructor() {
-    this.hibpApiUrl = "https://api.pwnedpasswords.com/range/";
-    this.hibpApiKey = process.env.HIBP_API_KEY;
+    // This is the free Pwned Passwords API endpoint that uses k-anonymity
+    this.pwnedPasswordsApiUrl = "https://api.pwnedpasswords.com/range/";
   }
 
   /**
-   * Check if a password has been breached using Have I Been Pwned API
+   * Check if a password has been breached using Pwned Passwords API
    * @param {string} password - The password to check
    * @returns {Promise<object>} - Breach information
    */
@@ -17,13 +17,15 @@ class BreachService {
     try {
       const { prefix, suffix } = getHashPrefix(password);
 
-      const response = await axios.get(`${this.hibpApiUrl}${prefix}`, {
-        timeout: 10000,
-        headers: {
-          "User-Agent": "Password-Breach-Notification-System",
-          ...(this.hibpApiKey && { "hibp-api-key": this.hibpApiKey }),
+      const response = await axios.get(
+        `${this.pwnedPasswordsApiUrl}${prefix}`,
+        {
+          timeout: 10000,
+          headers: {
+            "User-Agent": "Password-Breach-Notification-System",
+          },
         },
-      });
+      );
 
       const hashes = response.data.split("\n");
       const breachedHash = hashes.find(
@@ -33,26 +35,18 @@ class BreachService {
       if (breachedHash) {
         const count = parseInt(breachedHash.split(":")[1]);
         return {
-          isBreached: true,
+          breached: true,
           count,
-          source: "HaveIBeenPwned",
           severity: this.calculateSeverity(count),
-          details: {
-            timesFound: count,
-            lastChecked: new Date(),
-            hashPrefix: prefix,
-          },
+          source: "HaveIBeenPwned",
         };
       }
 
       return {
-        isBreached: false,
+        breached: false,
         count: 0,
         source: "HaveIBeenPwned",
-        details: {
-          lastChecked: new Date(),
-          hashPrefix: prefix,
-        },
+        severity: "none",
       };
     } catch (error) {
       logger.error("Error checking password breach:", error);
@@ -202,8 +196,10 @@ class BreachService {
    * @param {number} ms - Milliseconds to delay
    */
   delay(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise((resolve) => global.setTimeout(resolve, ms));
   }
 }
 
-module.exports = new BreachService();
+// Export the class constructor directly
+// This makes it compatible with: const BreachService = require('...')
+module.exports = BreachService;
