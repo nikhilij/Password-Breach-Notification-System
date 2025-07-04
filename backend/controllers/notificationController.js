@@ -1,7 +1,13 @@
 const User = require("../models/User");
 const Breach = require("../models/Breach");
+const EmailService = require("../services/emailService");
+const SmsService = require("../services/smsService");
 const logger = require("../utils/logger");
 const { catchAsync } = require("../middlewares/errorHandler");
+
+// Create service instances
+const emailService = new EmailService();
+const smsService = new SmsService();
 
 /**
  * Get user's notification preferences
@@ -210,7 +216,6 @@ const testNotification = catchAsync(async (req, res) => {
     switch (type) {
       case "email":
         if (user.notificationPreferences.email) {
-          const emailService = require("../services/emailService");
           result = await emailService.sendBreachNotification(user.email, {
             count: 12345,
             severity: "high",
@@ -221,7 +226,6 @@ const testNotification = catchAsync(async (req, res) => {
 
       case "sms":
         if (user.notificationPreferences.sms && user.phone) {
-          const smsService = require("../services/smsService");
           result = await smsService.sendBreachNotificationSMS(user.phone, {
             count: 12345,
             severity: "high",

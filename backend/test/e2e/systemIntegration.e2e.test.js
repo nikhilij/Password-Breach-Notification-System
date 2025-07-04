@@ -29,7 +29,7 @@ describe("E2E: System Integration", function () {
       password: adminPassword,
       phone: "+1234567890",
       isVerified: true,
-      role: "admin"
+      role: "admin",
     });
 
     regularUser = new User({
@@ -38,29 +38,25 @@ describe("E2E: System Integration", function () {
       password: regularPassword,
       phone: "+1987654321",
       isVerified: true,
-      role: "user"
+      role: "user",
     });
 
     await adminUser.save();
     await regularUser.save();
 
     // Get admin token
-    const adminLoginResponse = await request(app)
-      .post("/api/auth/login")
-      .send({
-        email: "admin@example.com",
-        password: "AdminPass123!"
-      });
+    const adminLoginResponse = await request(app).post("/api/auth/login").send({
+      email: "admin@example.com",
+      password: "AdminPass123!",
+    });
 
     adminToken = adminLoginResponse.body.token;
 
     // Get regular user token
-    const userLoginResponse = await request(app)
-      .post("/api/auth/login")
-      .send({
-        email: "user@example.com",
-        password: "UserPass123!"
-      });
+    const userLoginResponse = await request(app).post("/api/auth/login").send({
+      email: "user@example.com",
+      password: "UserPass123!",
+    });
 
     regularToken = userLoginResponse.body.token;
   });
@@ -102,7 +98,7 @@ describe("E2E: System Integration", function () {
         severity: "high",
         isActive: true,
         lastChecked: new Date(),
-        recommendedActions: ["Change password", "Enable 2FA"]
+        recommendedActions: ["Change password", "Enable 2FA"],
       });
       await breach.save();
 
@@ -125,7 +121,7 @@ describe("E2E: System Integration", function () {
         .post("/api/breach/check")
         .set("Authorization", `Bearer ${regularToken}`)
         .send({
-          password: "password123"
+          password: "password123",
         })
         .expect(200);
 
@@ -170,8 +166,8 @@ describe("E2E: System Integration", function () {
             .post("/api/breach/check")
             .set("Authorization", `Bearer ${regularToken}`)
             .send({
-              password: `password${i}`
-            })
+              password: `password${i}`,
+            }),
         );
       }
 
@@ -179,7 +175,7 @@ describe("E2E: System Integration", function () {
       const responses = await Promise.all(promises);
 
       // All responses should be successful
-      responses.forEach(response => {
+      responses.forEach((response) => {
         expect(response.status).to.equal(200);
         expect(response.body).to.have.property("isBreached");
         expect(response.body).to.have.property("breachCount");
@@ -195,7 +191,7 @@ describe("E2E: System Integration", function () {
         .send({
           email: false,
           sms: true,
-          push: false
+          push: false,
         })
         .expect(200);
 
@@ -204,7 +200,7 @@ describe("E2E: System Integration", function () {
         .post("/api/breach/check")
         .set("Authorization", `Bearer ${regularToken}`)
         .send({
-          password: "commonpassword"
+          password: "commonpassword",
         })
         .expect(200);
 
@@ -237,7 +233,7 @@ describe("E2E: System Integration", function () {
         .post("/api/breach/check")
         .set("Authorization", `Bearer ${regularToken}`)
         .send({
-          password: ""
+          password: "",
         })
         .expect(400);
 
@@ -262,7 +258,7 @@ describe("E2E: System Integration", function () {
           username: "ab", // Too short
           email: "not-an-email",
           password: "123", // Too weak
-          phone: "invalid-phone"
+          phone: "invalid-phone",
         })
         .expect(400);
 
@@ -284,7 +280,7 @@ describe("E2E: System Integration", function () {
         promises.push(
           request(app)
             .get("/api/auth/profile")
-            .set("Authorization", `Bearer ${regularToken}`)
+            .set("Authorization", `Bearer ${regularToken}`),
         );
       }
 
@@ -293,7 +289,7 @@ describe("E2E: System Integration", function () {
       const duration = endTime - startTime;
 
       // All requests should succeed
-      responses.forEach(response => {
+      responses.forEach((response) => {
         expect(response.status).to.equal(200);
         expect(response.body).to.have.property("user");
       });
@@ -314,7 +310,7 @@ describe("E2E: System Integration", function () {
           severity: i % 3 === 0 ? "critical" : "high",
           isActive: true,
           lastChecked: new Date(),
-          recommendedActions: ["Change password"]
+          recommendedActions: ["Change password"],
         });
       }
 
@@ -326,7 +322,7 @@ describe("E2E: System Integration", function () {
         .set("Authorization", `Bearer ${regularToken}`)
         .query({
           severity: "high",
-          riskLevel: "high"
+          riskLevel: "high",
         })
         .expect(200);
 
@@ -335,7 +331,7 @@ describe("E2E: System Integration", function () {
 
       expect(response.body).to.have.property("breaches");
       expect(response.body.breaches).to.be.an("array");
-      
+
       // Should complete within reasonable time (less than 1 second)
       expect(duration).to.be.below(1000);
     });
@@ -349,7 +345,7 @@ describe("E2E: System Integration", function () {
         { method: "post", path: "/api/breach/check" },
         { method: "get", path: "/api/breach/history" },
         { method: "get", path: "/api/notifications" },
-        { method: "get", path: "/api/notifications/preferences" }
+        { method: "get", path: "/api/notifications/preferences" },
       ];
 
       for (const route of protectedRoutes) {
@@ -365,18 +361,19 @@ describe("E2E: System Integration", function () {
         {
           endpoint: "/api/auth/register",
           method: "post",
-          data: { username: "a", email: "invalid", password: "123" }
+          data: { username: "a", email: "invalid", password: "123" },
         },
         {
           endpoint: "/api/breach/check",
           method: "post",
           data: { password: "" },
-          headers: { "Authorization": `Bearer ${regularToken}` }
-        }
+          headers: { Authorization: `Bearer ${regularToken}` },
+        },
       ];
 
       for (const req of invalidRequests) {
-        const response = await request(app)[req.method](req.endpoint)
+        const response = await request(app)
+          [req.method](req.endpoint)
           .set(req.headers || {})
           .send(req.data);
 

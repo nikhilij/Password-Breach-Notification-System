@@ -32,6 +32,8 @@ module.exports = [
         suiteTeardown: "readonly",
         setup: "readonly",
         teardown: "readonly",
+        before: "readonly",
+        after: "readonly",
       },
     },
     rules: {

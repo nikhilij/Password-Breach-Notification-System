@@ -2,7 +2,7 @@ const path = require("path");
 const { spawn } = require("child_process");
 
 // Configuration
-const testFolders = ["unit", "integration", "e2e", "api"];
+const testFolders = ["unit", "integration", "e2e", "api", "performance"];
 
 // Colors for terminal output
 const colors = {

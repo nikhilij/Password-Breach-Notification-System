@@ -2,10 +2,14 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { validationResult } = require("express-validator");
 const User = require("../models/User");
-const emailService = require("../services/emailService");
-const smsService = require("../services/smsService");
+const EmailService = require("../services/emailService");
+const SmsService = require("../services/smsService");
 const logger = require("../utils/logger");
 const { catchAsync, AppError } = require("../middlewares/errorHandler");
+
+// Create service instances
+const emailService = new EmailService();
+const smsService = new SmsService();
 
 /**
  * Generate JWT token

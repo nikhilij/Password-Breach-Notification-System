@@ -1,12 +1,17 @@
 const { validationResult } = require("express-validator");
 const User = require("../models/User");
 const Breach = require("../models/Breach");
-const breachService = require("../services/breachService");
-const emailService = require("../services/emailService");
-const smsService = require("../services/smsService");
+const BreachService = require("../services/breachService");
+const EmailService = require("../services/emailService");
+const SmsService = require("../services/smsService");
 const { generateSHA1Hash } = require("../utils/hashUtil");
 const logger = require("../utils/logger");
 const { catchAsync, AppError } = require("../middlewares/errorHandler");
+
+// Create service instances
+const breachService = new BreachService();
+const emailService = new EmailService();
+const smsService = new SmsService();
 
 /**
  * Check if a password has been breached

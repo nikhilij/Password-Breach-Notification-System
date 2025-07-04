@@ -31,7 +31,7 @@ describe("Breach API", function () {
       password: userPassword,
       phone: "+1234567890",
       isVerified: true,
-      role: "user"
+      role: "user",
     });
 
     adminUser = new User({
@@ -40,7 +40,7 @@ describe("Breach API", function () {
       password: adminPassword,
       phone: "+1987654321",
       isVerified: true,
-      role: "admin"
+      role: "admin",
     });
 
     await testUser.save();
@@ -50,13 +50,13 @@ describe("Breach API", function () {
     authToken = jwt.sign(
       { userId: testUser._id, email: testUser.email },
       process.env.JWT_SECRET || "test-secret",
-      { expiresIn: "1h" }
+      { expiresIn: "1h" },
     );
 
     adminToken = jwt.sign(
       { userId: adminUser._id, email: adminUser.email },
       process.env.JWT_SECRET || "test-secret",
-      { expiresIn: "1h" }
+      { expiresIn: "1h" },
     );
   });
 
@@ -72,7 +72,7 @@ describe("Breach API", function () {
         .post("/api/breach/check")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
-          password: "password123"
+          password: "password123",
         })
         .expect(200)
         .end((err, res) => {
@@ -83,7 +83,12 @@ describe("Breach API", function () {
           expect(res.body).to.have.property("recommendedActions");
           expect(res.body.isBreached).to.be.a("boolean");
           expect(res.body.breachCount).to.be.a("number");
-          expect(res.body.riskLevel).to.be.oneOf(["low", "medium", "high", "critical"]);
+          expect(res.body.riskLevel).to.be.oneOf([
+            "low",
+            "medium",
+            "high",
+            "critical",
+          ]);
           expect(res.body.recommendedActions).to.be.an("array");
           done();
         });
@@ -93,7 +98,7 @@ describe("Breach API", function () {
       request(app)
         .post("/api/breach/check")
         .send({
-          password: "password123"
+          password: "password123",
         })
         .expect(401)
         .end((err, res) => {
@@ -109,7 +114,7 @@ describe("Breach API", function () {
         .post("/api/breach/check")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
-          password: ""
+          password: "",
         })
         .expect(400)
         .end((err, res) => {
@@ -123,13 +128,15 @@ describe("Breach API", function () {
     it("should handle API errors gracefully", function (done) {
       // Mock the breach service to throw an error
       const breachService = require("../../services/breachService");
-      sinon.stub(breachService.prototype, "checkPassword").throws(new Error("API Error"));
+      sinon
+        .stub(breachService.prototype, "checkPassword")
+        .throws(new Error("API Error"));
 
       request(app)
         .post("/api/breach/check")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
-          password: "password123"
+          password: "password123",
         })
         .expect(500)
         .end((err, res) => {
@@ -152,7 +159,7 @@ describe("Breach API", function () {
           severity: "high",
           isActive: true,
           lastChecked: new Date(),
-          recommendedActions: ["Change password", "Enable 2FA"]
+          recommendedActions: ["Change password", "Enable 2FA"],
         },
         {
           userId: testUser._id,
@@ -162,8 +169,8 @@ describe("Breach API", function () {
           severity: "medium",
           isActive: true,
           lastChecked: new Date(),
-          recommendedActions: ["Change password"]
-        }
+          recommendedActions: ["Change password"],
+        },
       ];
 
       await Breach.insertMany(breaches);
@@ -204,7 +211,7 @@ describe("Breach API", function () {
         .set("Authorization", `Bearer ${authToken}`)
         .query({
           page: 1,
-          limit: 1
+          limit: 1,
         })
         .expect(200)
         .end((err, res) => {
@@ -230,7 +237,7 @@ describe("Breach API", function () {
           isActive: true,
           acknowledged: false,
           lastChecked: new Date(),
-          recommendedActions: ["Change password immediately"]
+          recommendedActions: ["Change password immediately"],
         },
         {
           userId: testUser._id,
@@ -241,8 +248,8 @@ describe("Breach API", function () {
           isActive: true,
           acknowledged: true,
           lastChecked: new Date(),
-          recommendedActions: ["Change password"]
-        }
+          recommendedActions: ["Change password"],
+        },
       ];
 
       await Breach.insertMany(breaches);
@@ -253,7 +260,7 @@ describe("Breach API", function () {
         .get("/api/breach/search")
         .set("Authorization", `Bearer ${authToken}`)
         .query({
-          severity: "critical"
+          severity: "critical",
         })
         .expect(200)
         .end((err, res) => {
@@ -271,7 +278,7 @@ describe("Breach API", function () {
         .get("/api/breach/search")
         .set("Authorization", `Bearer ${authToken}`)
         .query({
-          riskLevel: "medium"
+          riskLevel: "medium",
         })
         .expect(200)
         .end((err, res) => {
@@ -289,7 +296,7 @@ describe("Breach API", function () {
         .get("/api/breach/search")
         .set("Authorization", `Bearer ${authToken}`)
         .query({
-          acknowledged: false
+          acknowledged: false,
         })
         .expect(200)
         .end((err, res) => {
@@ -307,7 +314,7 @@ describe("Breach API", function () {
         .get("/api/breach/search")
         .set("Authorization", `Bearer ${authToken}`)
         .query({
-          severity: "invalid-severity"
+          severity: "invalid-severity",
         })
         .expect(400)
         .end((err, res) => {
@@ -333,7 +340,7 @@ describe("Breach API", function () {
         isActive: true,
         acknowledged: false,
         lastChecked: new Date(),
-        recommendedActions: ["Change password"]
+        recommendedActions: ["Change password"],
       });
 
       await breach.save();
@@ -384,34 +391,38 @@ describe("Breach API", function () {
         email: "other@example.com",
         password: "hashedPassword",
         phone: "+1111111111",
-        isVerified: true
+        isVerified: true,
       });
 
-      otherUser.save().then(() => {
-        const otherBreach = new Breach({
-          userId: otherUser._id,
-          password: "hashedPassword",
-          breachCount: 3,
-          riskLevel: "medium",
-          severity: "medium",
-          isActive: true,
-          acknowledged: false,
-          lastChecked: new Date(),
-          recommendedActions: ["Change password"]
-        });
-
-        return otherBreach.save();
-      }).then((otherBreach) => {
-        request(app)
-          .put(`/api/breach/${otherBreach._id}/acknowledge`)
-          .set("Authorization", `Bearer ${authToken}`)
-          .expect(403)
-          .end((err, res) => {
-            if (err) return done(err);
-            expect(res.body).to.have.property("message");
-            done();
+      otherUser
+        .save()
+        .then(() => {
+          const otherBreach = new Breach({
+            userId: otherUser._id,
+            password: "hashedPassword",
+            breachCount: 3,
+            riskLevel: "medium",
+            severity: "medium",
+            isActive: true,
+            acknowledged: false,
+            lastChecked: new Date(),
+            recommendedActions: ["Change password"],
           });
-      }).catch(done);
+
+          return otherBreach.save();
+        })
+        .then((otherBreach) => {
+          request(app)
+            .put(`/api/breach/${otherBreach._id}/acknowledge`)
+            .set("Authorization", `Bearer ${authToken}`)
+            .expect(403)
+            .end((err, res) => {
+              if (err) return done(err);
+              expect(res.body).to.have.property("message");
+              done();
+            });
+        })
+        .catch(done);
     });
   });
 
@@ -429,7 +440,11 @@ describe("Breach API", function () {
         isActive: true,
         acknowledged: false,
         lastChecked: new Date(),
-        recommendedActions: ["Change password", "Enable 2FA", "Review account security"]
+        recommendedActions: [
+          "Change password",
+          "Enable 2FA",
+          "Review account security",
+        ],
       });
 
       await breach.save();
@@ -441,7 +456,7 @@ describe("Breach API", function () {
         .post(`/api/breach/${breachId}/action`)
         .set("Authorization", `Bearer ${authToken}`)
         .send({
-          actionIndex: 0
+          actionIndex: 0,
         })
         .expect(200)
         .end((err, res) => {
@@ -457,7 +472,7 @@ describe("Breach API", function () {
         .post(`/api/breach/${breachId}/action`)
         .set("Authorization", `Bearer ${authToken}`)
         .send({
-          actionIndex: -1
+          actionIndex: -1,
         })
         .expect(400)
         .end((err, res) => {
@@ -473,7 +488,7 @@ describe("Breach API", function () {
         .post(`/api/breach/${breachId}/action`)
         .set("Authorization", `Bearer ${authToken}`)
         .send({
-          actionIndex: 99
+          actionIndex: 99,
         })
         .expect(400)
         .end((err, res) => {

@@ -29,8 +29,8 @@ describe("Notification API", function () {
       notificationPreferences: {
         email: true,
         sms: true,
-        push: false
-      }
+        push: false,
+      },
     });
 
     await testUser.save();
@@ -39,7 +39,7 @@ describe("Notification API", function () {
     authToken = jwt.sign(
       { userId: testUser._id, email: testUser.email },
       process.env.JWT_SECRET || "test-secret",
-      { expiresIn: "1h" }
+      { expiresIn: "1h" },
     );
   });
 
@@ -85,7 +85,7 @@ describe("Notification API", function () {
       const newPreferences = {
         email: false,
         sms: true,
-        push: true
+        push: true,
       };
 
       request(app)
@@ -105,7 +105,7 @@ describe("Notification API", function () {
       const invalidPreferences = {
         email: "invalid",
         sms: "not-boolean",
-        push: 123
+        push: 123,
       };
 
       request(app)
@@ -123,7 +123,7 @@ describe("Notification API", function () {
 
     it("should allow partial updates", function (done) {
       const partialPreferences = {
-        email: false
+        email: false,
       };
 
       request(app)
@@ -143,7 +143,7 @@ describe("Notification API", function () {
       request(app)
         .put("/api/notifications/preferences")
         .send({
-          email: false
+          email: false,
         })
         .expect(401)
         .end((err, res) => {
@@ -175,7 +175,7 @@ describe("Notification API", function () {
         .set("Authorization", `Bearer ${authToken}`)
         .query({
           page: 1,
-          limit: 10
+          limit: 10,
         })
         .expect(200)
         .end((err, res) => {
@@ -191,7 +191,7 @@ describe("Notification API", function () {
         .get("/api/notifications")
         .set("Authorization", `Bearer ${authToken}`)
         .query({
-          type: "breach"
+          type: "breach",
         })
         .expect(200)
         .end((err, res) => {
@@ -207,7 +207,7 @@ describe("Notification API", function () {
         .get("/api/notifications")
         .set("Authorization", `Bearer ${authToken}`)
         .query({
-          read: false
+          read: false,
         })
         .expect(200)
         .end((err, res) => {
@@ -344,7 +344,7 @@ describe("Notification API", function () {
         .post("/api/notifications/test")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
-          type: "email"
+          type: "email",
         })
         .expect(200)
         .end((err, res) => {
@@ -360,7 +360,7 @@ describe("Notification API", function () {
         .post("/api/notifications/test")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
-          type: "sms"
+          type: "sms",
         })
         .expect(200)
         .end((err, res) => {
@@ -376,7 +376,7 @@ describe("Notification API", function () {
         .post("/api/notifications/test")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
-          type: "invalid"
+          type: "invalid",
         })
         .expect(400)
         .end((err, res) => {
@@ -391,7 +391,7 @@ describe("Notification API", function () {
       request(app)
         .post("/api/notifications/test")
         .send({
-          type: "email"
+          type: "email",
         })
         .expect(401)
         .end((err, res) => {
@@ -405,13 +405,15 @@ describe("Notification API", function () {
     it("should handle service errors gracefully", function (done) {
       // Mock the email service to throw an error
       const emailService = require("../../services/emailService");
-      sinon.stub(emailService.prototype, "sendEmail").throws(new Error("Email service error"));
+      sinon
+        .stub(emailService.prototype, "sendEmail")
+        .throws(new Error("Email service error"));
 
       request(app)
         .post("/api/notifications/test")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
-          type: "email"
+          type: "email",
         })
         .expect(500)
         .end((err, res) => {

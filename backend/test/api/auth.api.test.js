@@ -5,6 +5,7 @@ const { expect } = require("chai");
 const request = require("supertest");
 const sinon = require("sinon");
 const app = require("../../index"); // Import the Express app
+        .expect(401)// Import the Express app
 const User = require("../../models/User");
 const jwt = require("jsonwebtoken");
 
@@ -57,10 +58,11 @@ describe("Authentication API", function () {
           if (err) return done(err);
 
           expect(res.body).to.have.property("message");
-          expect(res.body).to.have.property("user");
-          expect(res.body.user.email).to.equal(newUser.email);
-          expect(res.body.user.username).to.equal(newUser.username);
-          expect(res.body.user).to.not.have.property("password");
+          expect(res.body).to.have.property("data");
+          expect(res.body.data).to.have.property("user");
+          expect(res.body.data.user.email).to.equal(newUser.email);
+          expect(res.body.data.user.username).to.equal(newUser.username);
+          expect(res.body.data.user).to.not.have.property("password");
 
           done();
         });
@@ -121,9 +123,11 @@ describe("Authentication API", function () {
         .end(function (err, res) {
           if (err) return done(err);
 
-          expect(res.body).to.have.property("token");
-          expect(res.body).to.have.property("user");
-          expect(res.body.user.email).to.equal(credentials.email);
+          expect(res.body).to.have.property("status", "success");
+          expect(res.body).to.have.property("data");
+          expect(res.body.data).to.have.property("token");
+          expect(res.body.data).to.have.property("user");
+          expect(res.body.data.user.email).to.equal(credentials.email);
 
           done();
         });
@@ -166,18 +170,20 @@ describe("Authentication API", function () {
     });
   });
 
-  describe("GET /api/auth/profile", function () {
+  describe("GET /api/auth/me", function () {
     it("should get user profile with valid token", function (done) {
       request(app)
-        .get("/api/auth/profile")
+        .get("/api/auth/me")
         .set("Authorization", `Bearer ${authToken}`)
         .expect(200)
         .end(function (err, res) {
           if (err) return done(err);
 
-          expect(res.body).to.have.property("user");
-          expect(res.body.user.email).to.equal(testUser.email);
-          expect(res.body.user).to.not.have.property("password");
+          expect(res.body).to.have.property("status", "success");
+          expect(res.body).to.have.property("data");
+          expect(res.body.data).to.have.property("user");
+          expect(res.body.data.user.email).to.equal(testUser.email);
+          expect(res.body.data.user).to.not.have.property("password");
 
           done();
         });
@@ -185,7 +191,7 @@ describe("Authentication API", function () {
 
     it("should reject request without token", function (done) {
       request(app)
-        .get("/api/auth/profile")
+        .get("/api/auth/me")
         .expect(401)
         .end(function (err, res) {
           if (err) return done(err);

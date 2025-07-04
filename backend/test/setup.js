@@ -34,6 +34,12 @@ global.testUtils = {
 // Setup in-memory MongoDB server before all tests
 before(async function () {
   this.timeout(30000); // Extended timeout for MongoDB setup
+
+  // Close existing connection if any
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.connection.close();
+  }
+
   mongod = await MongoMemoryServer.create();
   const uri = mongod.getUri();
 
