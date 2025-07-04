@@ -1,0 +1,12 @@
+{"level":"info","message":"🚀 Password Breach Notification System running on port 3000","service":"password-breach-notification","timestamp":"2025-07-04T14:36:25.517Z"}
+{"level":"info","message":"📱 Environment: development","service":"password-breach-notification","timestamp":"2025-07-04T14:36:25.519Z"}
+{"level":"info","message":"🌐 Health check: http://localhost:3000/health","service":"password-breach-notification","timestamp":"2025-07-04T14:36:25.520Z"}
+{"level":"info","message":"📚 API docs: http://localhost:3000/api","service":"password-breach-notification","timestamp":"2025-07-04T14:36:25.520Z"}
+{"level":"info","message":"MongoDB Connected: localhost","service":"password-breach-notification","timestamp":"2025-07-04T14:36:25.569Z"}
+{"level":"info","message":"SIGINT received. Shutting down gracefully...","service":"password-breach-notification","timestamp":"2025-07-04T14:36:38.130Z"}
+{"level":"info","message":"🚀 Password Breach Notification System running on port 3000","service":"password-breach-notification","timestamp":"2025-07-04T14:38:04.917Z"}
+{"level":"info","message":"📱 Environment: development","service":"password-breach-notification","timestamp":"2025-07-04T14:38:04.919Z"}
+{"level":"info","message":"🌐 Health check: http://localhost:3000/health","service":"password-breach-notification","timestamp":"2025-07-04T14:38:04.919Z"}
+{"level":"info","message":"📚 API docs: http://localhost:3000/api","service":"password-breach-notification","timestamp":"2025-07-04T14:38:04.920Z"}
+{"level":"info","message":"MongoDB Connected: localhost","service":"password-breach-notification","timestamp":"2025-07-04T14:38:04.937Z"}
+{"level":"info","message":"SIGINT received. Shutting down gracefully...","service":"password-breach-notification","timestamp":"2025-07-04T14:38:15.516Z"}

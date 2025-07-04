@@ -1,0 +1,99 @@
+version: "3.8"
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0-jammy
+    container_name: breach-notification-db
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: breachdb
+    volumes:
+      - mongodb_data:/data/db
+      - ./database/init.js:/docker-entrypoint-initdb.d/init.js:ro
+    networks:
+      - breach-notification-network
+
+  # Redis Cache (optional)
+  redis:
+    image: redis:7.2-alpine
+    container_name: breach-notification-cache
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - breach-notification-network
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: breach-notification-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGODB_URI=mongodb://admin:password@mongodb:27017/breachdb?authSource=admin
+      - JWT_SECRET=your_jwt_secret_here_please_change_in_production
+      - HIBP_API_KEY=your_hibp_api_key_here
+      - EMAIL_USER=your_email@example.com
+      - EMAIL_PASS=your_email_password_here
+      - SMS_API_KEY=your_sms_api_key_here
+      - REDIS_URL=redis://redis:6379
+      - RATE_LIMIT_WINDOW_MS=900000
+      - RATE_LIMIT_MAX_REQUESTS=100
+      - BCRYPT_SALT_ROUNDS=10
+    depends_on:
+      - mongodb
+      - redis
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - breach-notification-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "const http = require('http'); http.get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Nginx Reverse Proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: breach-notification-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+    networks:
+      - breach-notification-network
+
+volumes:
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  breach-notification-network:
+    driver: bridge
