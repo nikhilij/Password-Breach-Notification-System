@@ -19,14 +19,10 @@ describe("E2E: System Integration", function () {
     await Breach.deleteMany({});
 
     // Create admin user
-    const bcrypt = require("bcryptjs");
-    const adminPassword = await bcrypt.hash("AdminPass123!", 12);
-    const regularPassword = await bcrypt.hash("UserPass123!", 12);
-
     adminUser = new User({
       username: "admin",
       email: "admin@example.com",
-      password: adminPassword,
+      password: "AdminPass123!",
       phone: "+1234567890",
       isVerified: true,
       role: "admin",
@@ -35,7 +31,7 @@ describe("E2E: System Integration", function () {
     regularUser = new User({
       username: "user",
       email: "user@example.com",
-      password: regularPassword,
+      password: "UserPass123!",
       phone: "+1987654321",
       isVerified: true,
       role: "user",
@@ -50,7 +46,8 @@ describe("E2E: System Integration", function () {
       password: "AdminPass123!",
     });
 
-    adminToken = adminLoginResponse.body.token;
+    adminToken = adminLoginResponse.body.data?.token;
+    expect(adminToken).to.exist;
 
     // Get regular user token
     const userLoginResponse = await request(app).post("/api/auth/login").send({
@@ -58,7 +55,8 @@ describe("E2E: System Integration", function () {
       password: "UserPass123!",
     });
 
-    regularToken = userLoginResponse.body.token;
+    regularToken = userLoginResponse.body.data?.token;
+    expect(regularToken).to.exist;
   });
 
   afterEach(async function () {
@@ -81,9 +79,10 @@ describe("E2E: System Integration", function () {
       // Try to access admin-only endpoint with regular user token
       const response = await request(app)
         .get("/api/breach/admin/stats")
-        .set("Authorization", `Bearer ${regularToken}`)
-        .expect(403);
+        .set("Authorization", `Bearer ${regularToken}`);
 
+      // Should get 403 Forbidden, not 401 Unauthorized
+      expect(response.status).to.equal(403);
       expect(response.body).to.have.property("message");
       expect(response.body.message).to.include("Admin access required");
     });
@@ -92,13 +91,23 @@ describe("E2E: System Integration", function () {
       // Create a test breach record first
       const breach = new Breach({
         userId: regularUser._id,
-        password: "hashedTestPassword",
-        breachCount: 5,
+        passwordHash:
+          "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8", // hashed test password
+        breachSources: [
+          {
+            name: "Test Breach",
+            dateFound: new Date(),
+            severity: "high",
+            description: "Test breach for e2e testing",
+          },
+        ],
         riskLevel: "high",
-        severity: "high",
         isActive: true,
         lastChecked: new Date(),
-        recommendedActions: ["Change password", "Enable 2FA"],
+        recommendedActions: [
+          { action: "Change password", priority: "high" },
+          { action: "Enable 2FA", priority: "medium" },
+        ],
       });
       await breach.save();
 
@@ -125,7 +134,7 @@ describe("E2E: System Integration", function () {
         })
         .expect(200);
 
-      expect(breachResponse.body.isBreached).to.be.true;
+      expect(breachResponse.body.data.isBreached).to.be.true;
 
       // Step 2: Check if notification preferences exist
       const prefsResponse = await request(app)
@@ -133,7 +142,7 @@ describe("E2E: System Integration", function () {
         .set("Authorization", `Bearer ${regularToken}`)
         .expect(200);
 
-      expect(prefsResponse.body.preferences).to.be.an("object");
+      expect(prefsResponse.body.data.preferences).to.be.an("object");
 
       // Step 3: Check notification history (should have breach notification)
       const notificationsResponse = await request(app)
@@ -141,7 +150,7 @@ describe("E2E: System Integration", function () {
         .set("Authorization", `Bearer ${regularToken}`)
         .expect(200);
 
-      expect(notificationsResponse.body.notifications).to.be.an("array");
+      expect(notificationsResponse.body.data.notifications).to.be.an("array");
 
       // Step 4: Check user's breach history
       const historyResponse = await request(app)
@@ -149,8 +158,8 @@ describe("E2E: System Integration", function () {
         .set("Authorization", `Bearer ${regularToken}`)
         .expect(200);
 
-      expect(historyResponse.body.breaches).to.be.an("array");
-      expect(historyResponse.body.breaches.length).to.be.above(0);
+      expect(historyResponse.body.data.breaches).to.be.an("array");
+      expect(historyResponse.body.data.breaches.length).to.be.above(0);
     });
 
     it("should handle concurrent user sessions", async function () {
@@ -177,9 +186,9 @@ describe("E2E: System Integration", function () {
       // All responses should be successful
       responses.forEach((response) => {
         expect(response.status).to.equal(200);
-        expect(response.body).to.have.property("isBreached");
-        expect(response.body).to.have.property("breachCount");
-        expect(response.body).to.have.property("riskLevel");
+        expect(response.body.data).to.have.property("isBreached");
+        expect(response.body.data).to.have.property("breachCount");
+        expect(response.body.data).to.have.property("riskLevel");
       });
     });
 
@@ -210,9 +219,9 @@ describe("E2E: System Integration", function () {
         .set("Authorization", `Bearer ${regularToken}`)
         .expect(200);
 
-      expect(prefsResponse.body.preferences.email).to.be.false;
-      expect(prefsResponse.body.preferences.sms).to.be.true;
-      expect(prefsResponse.body.preferences.push).to.be.false;
+      expect(prefsResponse.body.data.preferences.email).to.be.false;
+      expect(prefsResponse.body.data.preferences.sms).to.be.true;
+      expect(prefsResponse.body.data.preferences.push).to.be.false;
 
       // Step 4: Verify breach history is recorded
       const historyResponse = await request(app)
@@ -220,8 +229,8 @@ describe("E2E: System Integration", function () {
         .set("Authorization", `Bearer ${regularToken}`)
         .expect(200);
 
-      expect(historyResponse.body.breaches).to.be.an("array");
-      expect(historyResponse.body.breaches.length).to.be.above(0);
+      expect(historyResponse.body.data.breaches).to.be.an("array");
+      expect(historyResponse.body.data.breaches.length).to.be.above(0);
     });
   });
 
@@ -238,17 +247,17 @@ describe("E2E: System Integration", function () {
         .expect(400);
 
       expect(response.body).to.have.property("message");
-      expect(response.body.message).to.include("required");
+      expect(response.body.message).to.include("Validation errors");
     });
 
     it("should handle invalid tokens gracefully", async function () {
       const response = await request(app)
-        .get("/api/auth/profile")
+        .get("/api/auth/me")
         .set("Authorization", "Bearer invalid-token")
         .expect(401);
 
       expect(response.body).to.have.property("message");
-      expect(response.body.message).to.include("Invalid token");
+      expect(response.body.message).to.include("Please provide a valid token");
     });
 
     it("should handle malformed requests gracefully", async function () {
@@ -279,7 +288,7 @@ describe("E2E: System Integration", function () {
       for (let i = 0; i < 10; i++) {
         promises.push(
           request(app)
-            .get("/api/auth/profile")
+            .get("/api/auth/me")
             .set("Authorization", `Bearer ${regularToken}`),
         );
       }
@@ -291,7 +300,7 @@ describe("E2E: System Integration", function () {
       // All requests should succeed
       responses.forEach((response) => {
         expect(response.status).to.equal(200);
-        expect(response.body).to.have.property("user");
+        expect(response.body.data).to.have.property("user");
       });
 
       // Should complete within reasonable time (less than 5 seconds)
@@ -304,13 +313,13 @@ describe("E2E: System Integration", function () {
       for (let i = 0; i < 5; i++) {
         breaches.push({
           userId: regularUser._id,
-          password: `hashedPassword${i}`,
+          passwordHash: `hashedPassword${i}`,
           breachCount: i + 1,
           riskLevel: i % 2 === 0 ? "high" : "medium",
           severity: i % 3 === 0 ? "critical" : "high",
           isActive: true,
           lastChecked: new Date(),
-          recommendedActions: ["Change password"],
+          recommendedActions: [{ action: "Change password", priority: "high" }],
         });
       }
 
@@ -329,8 +338,8 @@ describe("E2E: System Integration", function () {
       const endTime = Date.now();
       const duration = endTime - startTime;
 
-      expect(response.body).to.have.property("breaches");
-      expect(response.body.breaches).to.be.an("array");
+      expect(response.body.data).to.have.property("breaches");
+      expect(response.body.data.breaches).to.be.an("array");
 
       // Should complete within reasonable time (less than 1 second)
       expect(duration).to.be.below(1000);
@@ -340,7 +349,7 @@ describe("E2E: System Integration", function () {
   describe("Security Validation", function () {
     it("should enforce proper authorization for protected routes", async function () {
       const protectedRoutes = [
-        { method: "get", path: "/api/auth/profile" },
+        { method: "get", path: "/api/auth/me" },
         { method: "put", path: "/api/auth/profile" },
         { method: "post", path: "/api/breach/check" },
         { method: "get", path: "/api/breach/history" },
@@ -372,10 +381,15 @@ describe("E2E: System Integration", function () {
       ];
 
       for (const req of invalidRequests) {
-        const response = await request(app)
-          [req.method](req.endpoint)
-          .set(req.headers || {})
-          .send(req.data);
+        const requestBuilder = request(app)[req.method](req.endpoint);
+
+        if (req.headers) {
+          Object.entries(req.headers).forEach(([key, value]) => {
+            requestBuilder.set(key, value);
+          });
+        }
+
+        const response = await requestBuilder.send(req.data);
 
         expect(response.status).to.equal(400);
         expect(response.body).to.have.property("errors");

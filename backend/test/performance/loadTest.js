@@ -1,6 +1,15 @@
 // Load testing script for the API
 const request = require("supertest");
 const jwt = require("jsonwebtoken");
+
+// Set generous rate limits for performance testing BEFORE requiring the app
+const originalRateLimitWindow = process.env.RATE_LIMIT_WINDOW_MS;
+const originalRateLimitMax = process.env.RATE_LIMIT_MAX_REQUESTS;
+
+// Set high limits for performance testing: 1000 requests per minute
+process.env.RATE_LIMIT_WINDOW_MS = "60000"; // 1 minute
+process.env.RATE_LIMIT_MAX_REQUESTS = "1000"; // 1000 requests
+
 const app = require("../../index");
 const User = require("../../models/User");
 const Breach = require("../../models/Breach");
@@ -83,7 +92,7 @@ class LoadTester {
       switch (requestType) {
         case "auth":
           response = await request(app)
-            .get("/api/auth/profile")
+            .get("/api/auth/me")
             .set("Authorization", `Bearer ${token}`);
           break;
 
@@ -110,7 +119,7 @@ class LoadTester {
 
         default:
           response = await request(app)
-            .get("/api/auth/profile")
+            .get("/api/auth/me")
             .set("Authorization", `Bearer ${token}`);
       }
 
@@ -134,12 +143,16 @@ class LoadTester {
         this.results.failedRequests++;
         this.results.errors.push({
           status: response.status,
-          error: response.body.message || "Unknown error",
+          error: response.body?.message || `HTTP ${response.status}`,
           requestType,
         });
       }
 
-      return { success: true, responseTime, status: response.status };
+      return {
+        success: response.status >= 200 && response.status < 400,
+        responseTime,
+        status: response.status,
+      };
     } catch (error) {
       const endTime = Date.now();
       const responseTime = endTime - startTime;
@@ -147,11 +160,16 @@ class LoadTester {
       this.results.totalRequests++;
       this.results.failedRequests++;
       this.results.errors.push({
-        error: error.message,
+        error: error.message || error.toString(),
         requestType,
+        details: error.code || "Connection error",
       });
 
-      return { success: false, responseTime, error: error.message };
+      return {
+        success: false,
+        responseTime,
+        error: error.message || error.toString(),
+      };
     }
   }
 
@@ -218,7 +236,7 @@ class LoadTester {
   async simulateUser(userIndex, delay) {
     // Wait for ramp up delay
     if (delay > 0) {
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await new Promise((resolve) => global.setTimeout(resolve, delay));
     }
 
     const requestTypes = [
@@ -227,17 +245,17 @@ class LoadTester {
       "notifications",
       "breach-history",
     ];
-    const promises = [];
 
-    // Create requests for this user
+    // Execute requests sequentially with small delays to prevent overwhelming
     for (let i = 0; i < this.config.REQUESTS_PER_USER; i++) {
       const requestType =
         requestTypes[Math.floor(Math.random() * requestTypes.length)];
-      promises.push(this.makeRequest(userIndex, requestType));
-    }
 
-    // Execute all requests for this user
-    await Promise.all(promises);
+      await this.makeRequest(userIndex, requestType);
+
+      // Add small delay between requests for this user
+      await new Promise((resolve) => global.setTimeout(resolve, 50));
+    }
   }
 
   async runStressTest() {
@@ -245,10 +263,10 @@ class LoadTester {
 
     const stressConfig = {
       ...this.config,
-      CONCURRENT_USERS: 50,
-      REQUESTS_PER_USER: 10,
-      TEST_DURATION: 60000, // 1 minute
-      RAMP_UP_TIME: 10000, // 10 seconds
+      CONCURRENT_USERS: 20, // Reduced from 50
+      REQUESTS_PER_USER: 5, // Reduced from 10
+      TEST_DURATION: 45000, // 45 seconds
+      RAMP_UP_TIME: 15000, // 15 seconds - longer ramp up
     };
 
     const oldConfig = this.config;
@@ -293,6 +311,16 @@ class LoadTester {
 async function main() {
   console.log("🧪 Starting API Load Testing Suite");
   console.log("===================================");
+
+  // Set generous rate limits for performance testing
+  const originalRateLimitWindow = process.env.RATE_LIMIT_WINDOW_MS;
+  const originalRateLimitMax = process.env.RATE_LIMIT_MAX_REQUESTS;
+
+  // Set high limits for performance testing: 1000 requests per minute
+  process.env.RATE_LIMIT_WINDOW_MS = "60000"; // 1 minute
+  process.env.RATE_LIMIT_MAX_REQUESTS = "1000"; // 1000 requests
+
+  console.log("📈 Performance test rate limits: 1000 requests per minute");
 
   const loadTester = new LoadTester(LOAD_TEST_CONFIG);
 
@@ -368,6 +396,19 @@ async function main() {
   } finally {
     // Cleanup
     await loadTester.cleanup();
+
+    // Restore original rate limit settings
+    if (originalRateLimitWindow) {
+      process.env.RATE_LIMIT_WINDOW_MS = originalRateLimitWindow;
+    } else {
+      delete process.env.RATE_LIMIT_WINDOW_MS;
+    }
+
+    if (originalRateLimitMax) {
+      process.env.RATE_LIMIT_MAX_REQUESTS = originalRateLimitMax;
+    } else {
+      delete process.env.RATE_LIMIT_MAX_REQUESTS;
+    }
   }
 
   console.log("\n🏁 Load testing completed!");

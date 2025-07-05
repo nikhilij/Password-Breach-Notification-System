@@ -53,9 +53,16 @@ describe("E2E: Complete User Workflow", function () {
         })
         .expect(200);
 
-      expect(loginResponse.body).to.have.property("token");
-      expect(loginResponse.body).to.have.property("user");
-      authToken = loginResponse.body.token;
+      expect(loginResponse.body).to.have.property("data");
+      expect(loginResponse.body.data).to.have.property("token");
+      expect(loginResponse.body.data).to.have.property("user");
+      authToken = loginResponse.body.data.token;
+
+      // Manually verify the user in the database for this test
+      await User.findOneAndUpdate(
+        { email: userData.email },
+        { isVerified: true },
+      );
 
       // Step 3: Update User Profile
       const profileUpdateResponse = await request(app)
@@ -74,15 +81,15 @@ describe("E2E: Complete User Workflow", function () {
 
       // Step 4: Get User Profile
       const profileResponse = await request(app)
-        .get("/api/auth/profile")
+        .get("/api/auth/me")
         .set("Authorization", `Bearer ${authToken}`)
         .expect(200);
 
-      expect(profileResponse.body.user).to.have.property(
+      expect(profileResponse.body.data.user).to.have.property(
         "phone",
         "+1987654321",
       );
-      expect(profileResponse.body.user).to.have.property(
+      expect(profileResponse.body.data.user).to.have.property(
         "username",
         "updateduser",
       );
@@ -96,9 +103,9 @@ describe("E2E: Complete User Workflow", function () {
         })
         .expect(200);
 
-      expect(breachCheckResponse.body).to.have.property("isBreached");
-      expect(breachCheckResponse.body).to.have.property("breachCount");
-      expect(breachCheckResponse.body).to.have.property("riskLevel");
+      expect(breachCheckResponse.body.data).to.have.property("isBreached");
+      expect(breachCheckResponse.body.data).to.have.property("breachCount");
+      expect(breachCheckResponse.body.data).to.have.property("riskLevel");
 
       // Step 6: Get Notification Preferences
       const notificationPrefsResponse = await request(app)
@@ -106,11 +113,13 @@ describe("E2E: Complete User Workflow", function () {
         .set("Authorization", `Bearer ${authToken}`)
         .expect(200);
 
-      expect(notificationPrefsResponse.body).to.have.property("preferences");
-      expect(notificationPrefsResponse.body.preferences).to.have.property(
+      expect(notificationPrefsResponse.body.data).to.have.property(
+        "preferences",
+      );
+      expect(notificationPrefsResponse.body.data.preferences).to.have.property(
         "email",
       );
-      expect(notificationPrefsResponse.body.preferences).to.have.property(
+      expect(notificationPrefsResponse.body.data.preferences).to.have.property(
         "sms",
       );
 
@@ -136,8 +145,8 @@ describe("E2E: Complete User Workflow", function () {
         .set("Authorization", `Bearer ${authToken}`)
         .expect(200);
 
-      expect(notificationsResponse.body).to.have.property("notifications");
-      expect(notificationsResponse.body.notifications).to.be.an("array");
+      expect(notificationsResponse.body.data).to.have.property("notifications");
+      expect(notificationsResponse.body.data.notifications).to.be.an("array");
 
       // Step 9: Search User's Breaches
       const breachSearchResponse = await request(app)
@@ -149,8 +158,8 @@ describe("E2E: Complete User Workflow", function () {
         })
         .expect(200);
 
-      expect(breachSearchResponse.body).to.have.property("breaches");
-      expect(breachSearchResponse.body.breaches).to.be.an("array");
+      expect(breachSearchResponse.body.data).to.have.property("breaches");
+      expect(breachSearchResponse.body.data.breaches).to.be.an("array");
 
       // Step 10: Get User's Breach History
       const breachHistoryResponse = await request(app)
@@ -158,13 +167,13 @@ describe("E2E: Complete User Workflow", function () {
         .set("Authorization", `Bearer ${authToken}`)
         .expect(200);
 
-      expect(breachHistoryResponse.body).to.have.property("breaches");
-      expect(breachHistoryResponse.body.breaches).to.be.an("array");
+      expect(breachHistoryResponse.body.data).to.have.property("breaches");
+      expect(breachHistoryResponse.body.data.breaches).to.be.an("array");
     });
 
     it("should handle authentication errors gracefully", async function () {
       // Try to access protected endpoint without token
-      const response = await request(app).get("/api/auth/profile").expect(401);
+      const response = await request(app).get("/api/auth/me").expect(401);
 
       expect(response.body).to.have.property("message");
       expect(response.body.message).to.include("token");
@@ -184,7 +193,7 @@ describe("E2E: Complete User Workflow", function () {
         .expect(401);
 
       expect(response.body).to.have.property("message");
-      expect(response.body.message).to.include("Invalid credentials");
+      expect(response.body.message).to.include("Invalid email or password");
     });
 
     it("should prevent duplicate user registration", async function () {
@@ -220,8 +229,14 @@ describe("E2E: Complete User Workflow", function () {
 
   describe("Password Breach Detection Workflow", function () {
     beforeEach(async function () {
-      // Register and login user
+      // Register user
       await request(app).post("/api/auth/register").send(userData).expect(201);
+
+      // Manually verify the user in the database
+      await User.findOneAndUpdate(
+        { email: userData.email },
+        { isVerified: true },
+      );
 
       const loginResponse = await request(app)
         .post("/api/auth/login")
@@ -231,7 +246,7 @@ describe("E2E: Complete User Workflow", function () {
         })
         .expect(200);
 
-      authToken = loginResponse.body.token;
+      authToken = loginResponse.body.data.token;
     });
 
     it("should detect and track password breaches", async function () {
@@ -244,9 +259,9 @@ describe("E2E: Complete User Workflow", function () {
         })
         .expect(200);
 
-      expect(breachResponse.body.isBreached).to.be.true;
-      expect(breachResponse.body.breachCount).to.be.above(0);
-      expect(breachResponse.body.riskLevel).to.be.oneOf([
+      expect(breachResponse.body.data.isBreached).to.be.true;
+      expect(breachResponse.body.data.breachCount).to.be.above(0);
+      expect(breachResponse.body.data.riskLevel).to.be.oneOf([
         "low",
         "medium",
         "high",
@@ -259,7 +274,7 @@ describe("E2E: Complete User Workflow", function () {
         .set("Authorization", `Bearer ${authToken}`)
         .expect(200);
 
-      expect(historyResponse.body.breaches).to.have.length.above(0);
+      expect(historyResponse.body.data.breaches).to.have.length.above(0);
     });
 
     it("should handle secure passwords correctly", async function () {
@@ -272,16 +287,22 @@ describe("E2E: Complete User Workflow", function () {
         })
         .expect(200);
 
-      expect(breachResponse.body).to.have.property("isBreached");
-      expect(breachResponse.body).to.have.property("breachCount");
-      expect(breachResponse.body).to.have.property("riskLevel");
+      expect(breachResponse.body.data).to.have.property("isBreached");
+      expect(breachResponse.body.data).to.have.property("breachCount");
+      expect(breachResponse.body.data).to.have.property("riskLevel");
     });
   });
 
   describe("Notification System Workflow", function () {
     beforeEach(async function () {
-      // Register and login user
+      // Register user
       await request(app).post("/api/auth/register").send(userData).expect(201);
+
+      // Manually verify the user in the database
+      await User.findOneAndUpdate(
+        { email: userData.email },
+        { isVerified: true },
+      );
 
       const loginResponse = await request(app)
         .post("/api/auth/login")
@@ -291,7 +312,7 @@ describe("E2E: Complete User Workflow", function () {
         })
         .expect(200);
 
-      authToken = loginResponse.body.token;
+      authToken = loginResponse.body.data.token;
     });
 
     it("should manage notification preferences", async function () {
@@ -301,8 +322,8 @@ describe("E2E: Complete User Workflow", function () {
         .set("Authorization", `Bearer ${authToken}`)
         .expect(200);
 
-      expect(initialPrefs.body.preferences).to.have.property("email");
-      expect(initialPrefs.body.preferences).to.have.property("sms");
+      expect(initialPrefs.body.data.preferences).to.have.property("email");
+      expect(initialPrefs.body.data.preferences).to.have.property("sms");
 
       // Update preferences
       const updateResponse = await request(app)
@@ -323,8 +344,8 @@ describe("E2E: Complete User Workflow", function () {
         .set("Authorization", `Bearer ${authToken}`)
         .expect(200);
 
-      expect(updatedPrefs.body.preferences.email).to.be.false;
-      expect(updatedPrefs.body.preferences.sms).to.be.true;
+      expect(updatedPrefs.body.data.preferences.email).to.be.false;
+      expect(updatedPrefs.body.data.preferences.sms).to.be.true;
     });
 
     it("should retrieve notification history", async function () {
@@ -333,8 +354,8 @@ describe("E2E: Complete User Workflow", function () {
         .set("Authorization", `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body).to.have.property("notifications");
-      expect(response.body.notifications).to.be.an("array");
+      expect(response.body.data).to.have.property("notifications");
+      expect(response.body.data.notifications).to.be.an("array");
     });
 
     it("should provide notification statistics", async function () {
@@ -343,8 +364,8 @@ describe("E2E: Complete User Workflow", function () {
         .set("Authorization", `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body).to.have.property("stats");
-      expect(response.body.stats).to.be.an("object");
+      expect(response.body.data).to.have.property("statistics");
+      expect(response.body.data.statistics).to.be.an("object");
     });
   });
 });

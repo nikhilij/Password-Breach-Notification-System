@@ -237,6 +237,14 @@ const acknowledgeBreach = catchAsync(async (req, res) => {
  * Mark recommended action as completed
  */
 const markActionCompleted = catchAsync(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      status: "fail",
+      errors: errors.array(),
+    });
+  }
+
   const { breachId } = req.params;
   const { actionIndex } = req.body;
   const userId = req.user._id;
@@ -257,6 +265,7 @@ const markActionCompleted = catchAsync(async (req, res) => {
     return res.status(400).json({
       status: "fail",
       message: "Invalid action index",
+      errors: [{ msg: "Invalid action index" }],
     });
   }
 

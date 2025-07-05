@@ -6,13 +6,27 @@
     "exclude": [
         "coverage/**",
         "test/**",
+        "tests/**",
         "node_modules/**",
+        "**/*.test.js",
+        "**/*.spec.js",
+        "eslint.config.js",
+        "debug-*.js",
+        "__mocks__/**",
         ".mocharc.js"
     ],
     "reporter": [
         "html",
         "text",
-        "lcov"
+        "lcov",
+        "json"
     ],
-    "report-dir": "./coverage"
+    "report-dir": "./coverage",
+    "cache": true,
+    "temp-dir": "./coverage/.nyc_output",
+    "check-coverage": true,
+    "lines": 75,
+    "functions": 70,
+    "branches": 65,
+    "statements": 75
 }

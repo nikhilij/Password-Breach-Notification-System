@@ -67,8 +67,67 @@ const sendErrorProd = (err, res) => {
   }
 };
 
+// Enhanced error tracking and monitoring
+class ErrorTracker {
+  constructor() {
+    this.errorCounts = new Map();
+    this.recentErrors = [];
+    this.maxRecentErrors = 100;
+  }
+
+  trackError(error, req = null) {
+    const errorKey = `${error.name}:${error.message}`;
+    const count = this.errorCounts.get(errorKey) || 0;
+    this.errorCounts.set(errorKey, count + 1);
+
+    // Track recent errors with context
+    const errorInfo = {
+      timestamp: new Date(),
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        statusCode: error.statusCode || 500,
+      },
+      request: req
+        ? {
+            method: req.method,
+            url: req.url,
+            userAgent: req.get("User-Agent"),
+            ip: req.ip,
+          }
+        : null,
+    };
+
+    this.recentErrors.push(errorInfo);
+
+    // Keep only recent errors
+    if (this.recentErrors.length > this.maxRecentErrors) {
+      this.recentErrors.shift();
+    }
+
+    return errorInfo;
+  }
+
+  getErrorStats() {
+    return {
+      totalErrors: this.recentErrors.length,
+      errorCounts: Object.fromEntries(this.errorCounts),
+      recentErrors: this.recentErrors.slice(-10), // Last 10 errors
+    };
+  }
+
+  clearStats() {
+    this.errorCounts.clear();
+    this.recentErrors = [];
+  }
+}
+
+// Global error tracker instance
+const errorTracker = new ErrorTracker();
+
 // Global error handling middleware
-const globalErrorHandler = (err, req, res, next) => {
+const globalErrorHandler = (err, req, res, _next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
 
@@ -96,6 +155,9 @@ const globalErrorHandler = (err, req, res, next) => {
     ip: req.ip,
     userAgent: req.get("User-Agent"),
   });
+
+  // Track error
+  errorTracker.trackError(err, req);
 };
 
 // Catch async errors wrapper

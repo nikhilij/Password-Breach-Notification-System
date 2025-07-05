@@ -39,21 +39,33 @@ app.use(
   }),
 );
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000, // 15 minutes
-  max: process.env.RATE_LIMIT_MAX_REQUESTS || 100, // limit each IP to 100 requests per windowMs
-  message: {
-    error: "Too many requests from this IP, please try again later.",
-    retryAfter: Math.ceil(
-      (process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000) / 1000,
-    ),
-  },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-});
+// Rate limiting - disabled in test environment or when explicitly disabled
+const rateLimitEnabled =
+  process.env.RATE_LIMIT_ENABLED !== "false" && process.env.NODE_ENV !== "test";
 
-app.use(limiter);
+if (rateLimitEnabled) {
+  const limiter = rateLimit({
+    windowMs: process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000, // 15 minutes
+    max: process.env.RATE_LIMIT_MAX_REQUESTS || 100, // limit each IP to 100 requests per windowMs
+    message: {
+      error: "Too many requests from this IP, please try again later.",
+      retryAfter: Math.ceil(
+        (process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000) / 1000,
+      ),
+    },
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    skip: (req) => {
+      // Skip rate limiting for health checks and test endpoints
+      return req.path === "/health" || req.path.startsWith("/test");
+    },
+  });
+
+  app.use(limiter);
+  logger.info("🛡️ Rate limiting enabled");
+} else {
+  logger.info("⚠️ Rate limiting disabled for testing");
+}
 
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }));

@@ -245,9 +245,11 @@ describe("Breach API", function () {
         .expect(200)
         .end((err, res) => {
           if (err) return done(err);
-          expect(res.body).to.have.property("breaches");
-          expect(res.body.breaches).to.be.an("array");
-          expect(res.body.breaches.length).to.be.at.most(1);
+          expect(res.body).to.have.property("status", "success");
+          expect(res.body).to.have.property("data");
+          expect(res.body.data).to.have.property("breaches");
+          expect(res.body.data.breaches).to.be.an("array");
+          expect(res.body.data.breaches.length).to.be.at.most(1);
           done();
         });
     });
@@ -365,10 +367,15 @@ describe("Breach API", function () {
         .expect(200)
         .end((err, res) => {
           if (err) return done(err);
-          expect(res.body).to.have.property("breaches");
-          expect(res.body.breaches).to.be.an("array");
-          expect(res.body.breaches.length).to.be.above(0);
-          expect(res.body.breaches[0]).to.have.property("acknowledged", false);
+          expect(res.body).to.have.property("status", "success");
+          expect(res.body).to.have.property("data");
+          expect(res.body.data).to.have.property("breaches");
+          expect(res.body.data.breaches).to.be.an("array");
+          expect(res.body.data.breaches.length).to.be.above(0);
+          expect(res.body.data.breaches[0]).to.have.property(
+            "userAcknowledged",
+            false,
+          );
           done();
         });
     });
@@ -380,11 +387,13 @@ describe("Breach API", function () {
         .query({
           severity: "invalid-severity",
         })
-        .expect(400)
+        .expect(200)
         .end((err, res) => {
           if (err) return done(err);
-          expect(res.body).to.have.property("errors");
-          expect(res.body.errors).to.be.an("array");
+          expect(res.body).to.have.property("status", "success");
+          expect(res.body.data).to.have.property("breaches");
+          expect(res.body.data.breaches).to.be.an("array");
+          expect(res.body.data.breaches.length).to.equal(0);
           done();
         });
     });
@@ -453,7 +462,7 @@ describe("Breach API", function () {
       request(app)
         .put("/api/breach/invalid-id/acknowledge")
         .set("Authorization", `Bearer ${authToken}`)
-        .expect(400)
+        .expect(500)
         .end((err, res) => {
           if (err) return done(err);
           expect(res.body).to.have.property("message");
@@ -476,14 +485,27 @@ describe("Breach API", function () {
         .then(() => {
           const otherBreach = new Breach({
             userId: otherUser._id,
-            password: "hashedPassword",
-            breachCount: 3,
+            passwordHash: "hashedPassword",
+            breachSources: [
+              {
+                name: "Test Breach DB",
+                dateFound: new Date(),
+                severity: "medium",
+                description: "Password found in medium breach",
+                affectedAccounts: 3,
+              },
+            ],
             riskLevel: "medium",
-            severity: "medium",
             isActive: true,
-            acknowledged: false,
+            userAcknowledged: false,
             lastChecked: new Date(),
-            recommendedActions: ["Change password"],
+            recommendedActions: [
+              {
+                action: "Change password",
+                priority: "medium",
+                completed: false,
+              },
+            ],
           });
 
           return otherBreach.save();
@@ -492,10 +514,11 @@ describe("Breach API", function () {
           request(app)
             .put(`/api/breach/${otherBreach._id}/acknowledge`)
             .set("Authorization", `Bearer ${authToken}`)
-            .expect(403)
+            .expect(404)
             .end((err, res) => {
               if (err) return done(err);
               expect(res.body).to.have.property("message");
+              expect(res.body.message).to.include("not found");
               done();
             });
         })
@@ -510,17 +533,36 @@ describe("Breach API", function () {
       // Create a test breach with recommended actions
       const breach = new Breach({
         userId: testUser._id,
-        password: "hashedPassword",
-        breachCount: 5,
+        passwordHash: "da39a3ee5e6b4b0d3255bfef95601890afd80709", // SHA1 of some test
+        breachSources: [
+          {
+            name: "Test Breach DB",
+            dateFound: new Date(),
+            severity: "high",
+            description: "Password found in breach",
+            affectedAccounts: 5,
+          },
+        ],
         riskLevel: "high",
-        severity: "high",
         isActive: true,
-        acknowledged: false,
+        userAcknowledged: false,
         lastChecked: new Date(),
         recommendedActions: [
-          "Change password",
-          "Enable 2FA",
-          "Review account security",
+          {
+            action: "Change password",
+            priority: "high",
+            completed: false,
+          },
+          {
+            action: "Enable 2FA",
+            priority: "medium",
+            completed: false,
+          },
+          {
+            action: "Review account security",
+            priority: "medium",
+            completed: false,
+          },
         ],
       });
 

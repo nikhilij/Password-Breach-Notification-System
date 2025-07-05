@@ -85,6 +85,12 @@ router.put(
   requireVerified,
   breachController.acknowledgeBreach,
 );
+router.post(
+  "/:breachId/action",
+  requireVerified,
+  markActionValidation,
+  breachController.markActionCompleted,
+);
 router.put(
   "/:breachId/action-completed",
   requireVerified,
