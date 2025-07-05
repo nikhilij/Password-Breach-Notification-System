@@ -325,7 +325,10 @@ describe("Breach API", function () {
           expect(res.body.data.breaches).to.be.an("array");
           expect(res.body.data.breaches.length).to.be.above(0);
           expect(res.body.data.breaches[0]).to.have.property("breachSources");
-          expect(res.body.data.breaches[0].breachSources[0]).to.have.property("severity", "critical");
+          expect(res.body.data.breaches[0].breachSources[0]).to.have.property(
+            "severity",
+            "critical",
+          );
           done();
         });
     });
@@ -344,7 +347,10 @@ describe("Breach API", function () {
           expect(res.body.data).to.have.property("breaches");
           expect(res.body.data.breaches).to.be.an("array");
           expect(res.body.data.breaches.length).to.be.above(0);
-          expect(res.body.data.breaches[0]).to.have.property("riskLevel", "medium");
+          expect(res.body.data.breaches[0]).to.have.property(
+            "riskLevel",
+            "medium",
+          );
           done();
         });
     });
