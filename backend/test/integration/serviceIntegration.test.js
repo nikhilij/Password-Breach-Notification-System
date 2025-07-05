@@ -4,6 +4,7 @@ require("../setup");
 const { expect } = require("chai");
 const sinon = require("sinon");
 const axios = require("axios");
+const { setTimeout } = require("timers/promises");
 const BreachService = require("../../services/breachService");
 const EmailService = require("../../services/emailService");
 
@@ -23,8 +24,10 @@ describe("Service Integration Tests", function () {
   describe("Breach Detection Pipeline", function () {
     it("should perform end-to-end breach check and notification", async function () {
       // Mock the HaveIBeenPwned API response
+      // The SHA-1 hash of "password" is 5BAA61E4C9B93F3F0682250B6CF8331B7EE68FD8
+      // Prefix: 5BAA6, Suffix: 1E4C9B93F3F0682250B6CF8331B7EE68FD8
       const mockAxiosResponse = {
-        data: "5E884898DA28047151D0E56F8DC6292773603D0D6AABBDD62A11EF721D1542D8:10\nAB87D24BDC7452E55738DEB5F868E1BCDB2312345543DA:5",
+        data: "1E4C9B93F3F0682250B6CF8331B7EE68FD8:10\nAB87D24BDC7452E55738DEB5F868E1BCDB2312345543DA:5",
       };
 
       const axiosStub = sinon.stub(axios, "get").resolves(mockAxiosResponse);
@@ -35,7 +38,7 @@ describe("Service Integration Tests", function () {
         .resolves(true);
 
       // Test a password that would be found in the mocked response
-      const password = "password"; // This hashes to 5E884898DA28047151D0E56F8DC6292773603D0D6AABBDD62A11EF721D1542D8
+      const password = "password"; // This hashes to 5BAA61E4C9B93F3F0682250B6CF8331B7EE68FD8
 
       // Perform breach check
       const breachResult = await breachService.checkPasswordBreach(password);
@@ -66,12 +69,15 @@ describe("Service Integration Tests", function () {
       // Mock API responses for different passwords
       const axiosStub = sinon.stub(axios, "get");
 
-      // First password is breached
+      // First password is breached (password -> 5BAA61E4C9B93F3F0682250B6CF8331B7EE68FD8)
+      // Prefix: 5BAA6, Suffix: 1E4C9B93F3F0682250B6CF8331B7EE68FD8
       axiosStub.onFirstCall().resolves({
-        data: "5E884898DA28047151D0E56F8DC6292773603D0D6AABBDD62A11EF721D1542D8:1000",
+        data: "1E4C9B93F3F0682250B6CF8331B7EE68FD8:1000",
       });
 
-      // Second password is not breached
+      // Second password is not breached (securePassword123!@# -> 3A927B924CD9ACAA4172C990D48F195AF9132726)
+      // Prefix: 3A927, Suffix: B924CD9ACAA4172C990D48F195AF9132726
+      // We'll return different suffixes so it's not found
       axiosStub.onSecondCall().resolves({
         data: "ABCDEF1234567890:5\nFEDCBA0987654321:10",
       });
@@ -84,7 +90,7 @@ describe("Service Integration Tests", function () {
         results.push(result);
 
         // Add small delay as the service does
-        await new Promise((resolve) => setTimeout(resolve, 50));
+        await setTimeout(50);
       }
 
       // Verify results

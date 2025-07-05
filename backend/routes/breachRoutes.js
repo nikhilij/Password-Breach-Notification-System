@@ -95,5 +95,6 @@ router.put(
 // Admin routes
 router.get("/admin/stats", requireAdmin, breachController.getGlobalBreachStats);
 router.get("/admin/recent", requireAdmin, breachController.getRecentBreaches);
+router.get("/user/:userId", requireAdmin, breachController.getUserBreaches);
 
 module.exports = router;

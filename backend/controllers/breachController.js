@@ -32,7 +32,7 @@ const checkPasswordBreach = catchAsync(async (req, res) => {
   // Check password breach
   const breachResult = await breachService.checkPasswordBreach(password);
 
-  if (breachResult.isBreached) {
+  if (breachResult.breached) {
     // Generate password hash for storage
     const passwordHash = generateSHA1Hash(password);
 
@@ -111,12 +111,12 @@ const checkPasswordBreach = catchAsync(async (req, res) => {
       status: "success",
       message: "Password breach detected",
       data: {
-        breached: true,
-        count: breachResult.count,
-        severity: breachResult.severity,
-        source: breachResult.source,
+        isBreached: true,
+        breachCount: breachResult.count,
         riskLevel: existingBreach.riskLevel,
         recommendedActions: existingBreach.recommendedActions,
+        severity: breachResult.severity,
+        source: breachResult.source,
         suggestMfa:
           existingBreach.riskLevel === "critical" ||
           existingBreach.riskLevel === "high",
@@ -129,10 +129,12 @@ const checkPasswordBreach = catchAsync(async (req, res) => {
     status: "success",
     message: "Password not found in breach databases",
     data: {
-      breached: false,
-      count: 0,
+      isBreached: false,
+      breachCount: 0,
+      riskLevel: "none",
+      recommendedActions: [],
       source: breachResult.source,
-      lastChecked: breachResult.details.lastChecked,
+      lastChecked: new Date().toISOString(),
     },
   });
 });
@@ -361,6 +363,36 @@ const searchBreaches = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Get user breaches by user ID (Admin only)
+ */
+const getUserBreaches = catchAsync(async (req, res) => {
+  const { userId } = req.params;
+
+  // Validate user exists
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
+
+  const breaches = await Breach.find({ userId })
+    .sort({ createdAt: -1 })
+    .limit(50);
+
+  res.json({
+    status: "success",
+    data: {
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+      },
+      breaches,
+      count: breaches.length,
+    },
+  });
+});
+
 module.exports = {
   checkPasswordBreach,
   getBreachHistory,
@@ -370,4 +402,5 @@ module.exports = {
   getGlobalBreachStats,
   getRecentBreaches,
   searchBreaches,
+  getUserBreaches,
 };

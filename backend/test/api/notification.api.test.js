@@ -56,13 +56,14 @@ describe("Notification API", function () {
         .expect(200)
         .end((err, res) => {
           if (err) return done(err);
-          expect(res.body).to.have.property("preferences");
-          expect(res.body.preferences).to.have.property("email");
-          expect(res.body.preferences).to.have.property("sms");
-          expect(res.body.preferences).to.have.property("push");
-          expect(res.body.preferences.email).to.be.true;
-          expect(res.body.preferences.sms).to.be.true;
-          expect(res.body.preferences.push).to.be.false;
+          expect(res.body).to.have.property("data");
+          expect(res.body.data).to.have.property("preferences");
+          expect(res.body.data.preferences).to.have.property("email");
+          expect(res.body.data.preferences).to.have.property("sms");
+          expect(res.body.data.preferences).to.have.property("push");
+          expect(res.body.data.preferences.email).to.be.true;
+          expect(res.body.data.preferences.sms).to.be.true;
+          expect(res.body.data.preferences.push).to.be.false;
           done();
         });
     });

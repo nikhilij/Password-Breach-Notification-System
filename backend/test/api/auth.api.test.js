@@ -5,7 +5,6 @@ const { expect } = require("chai");
 const request = require("supertest");
 const sinon = require("sinon");
 const app = require("../../index"); // Import the Express app
-        .expect(401)// Import the Express app
 const User = require("../../models/User");
 const jwt = require("jsonwebtoken");
 
@@ -15,13 +14,10 @@ describe("Authentication API", function () {
 
   beforeEach(async function () {
     // Create a test user
-    const bcrypt = require("bcryptjs");
-    const hashedPassword = await bcrypt.hash("TestPassword123!", 12);
-
     testUser = new User({
       username: "testuser",
       email: "test@example.com",
-      password: hashedPassword,
+      password: "TestPassword123!", // Let the model handle hashing
       phone: "+1234567890",
       isVerified: true,
     });
@@ -203,7 +199,7 @@ describe("Authentication API", function () {
 
     it("should reject request with invalid token", function (done) {
       request(app)
-        .get("/api/auth/profile")
+        .get("/api/auth/me")
         .set("Authorization", "Bearer invalid-token")
         .expect(401)
         .end(function (err, res) {
